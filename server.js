@@ -4,22 +4,30 @@ const server = new WebSocket.Server({ port: 8080 });
 const clients = new Set();
 
 server.on('connection', (socket) => {
-    console.log('Новый клиент подключен');
     clients.add(socket);
 
+    socket.send(JSON.stringify({ sender: 'Сервер', message: 'Добро пожаловать в чат!' }));
+
     socket.on('message', (message) => {
-        clients.forEach(client => {
-            if (client !== socket && client.readyState === WebSocket.OPEN) {
-                client.send(message);
-            }
-        });
+        let messageData;
+        try {
+            const messageString = message.toString('utf8');
+
+            messageData = JSON.parse(messageString);
+
+            clients.forEach(client => {
+                if (client !== socket && client.readyState === WebSocket.OPEN) {
+                    client.send(JSON.stringify(messageData));
+                }
+            });
+        } catch (error) {
+            console.error('Ошибка:', error);
+        }
     });
 
     socket.on('close', () => {
-        console.log('Клиент отключен');
         clients.delete(socket);
     });
-    socket.send('Добро пожаловать в чат!');
 });
 
 console.log('Сервер запущен на порту 8080');
